@@ -2,7 +2,7 @@
 id: x56z7d0isnwr9hrftlnso61
 title: Using POSTMAN
 desc: ''
-updated: 1650952493898
+updated: 1651213640311
 created: 1650909782335
 ---
 
@@ -14,6 +14,9 @@ created: 1650909782335
 
 
 -[Postman Tutorial - OAUTH 2.0 Authorization using Gmail API](https://www.youtube.com/watch?v=x7uG1-H0aDU)
+
+
+
 
 ---
 #### backlinks

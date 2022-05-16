@@ -2,7 +2,7 @@
 id: cgbpdk1795djqykwsbn7dcj
 title: Other Related Projects
 desc: 'This is for Other projects'
-updated: 1650952762155
+updated: 1651213683630
 created: 1650950264726
 ---
 
@@ -42,6 +42,10 @@ created: 1650950264726
 
 
 - [How to use GOOGLE_APPLICATION_CREDENTIALS with gcloud on a server?](https://serverfault.com/questions/848580/how-to-use-google-application-credentials-with-gcloud-on-a-server/849910#849910)
+
+
+- [Parsing a Spreadsheet Into a JSON File Using Python](https://medium.com/coinmonks/parsing-a-spreadsheet-into-a-json-file-using-python-6118f5c70bd3)
+
 
 ---
 
