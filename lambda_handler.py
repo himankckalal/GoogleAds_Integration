@@ -1,6 +1,7 @@
 from base64 import decode
 import json
 import os
+import phonenumbers
 import resource
 from unittest import result
 from urllib import response
@@ -126,7 +127,7 @@ def generate_add_users_input():
         if row["Email"] == "Email":
             continue
         if row["Phone"]:
-            phone = normalize_and_sha256(row["Phone"])
+            phone = normalize_and_sha256('+91'.join(row["Phone"]))
             hashedphone ={"hashedPhoneNumber" : phone} 
             userIdentifier.append(hashedphone)
 
