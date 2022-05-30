@@ -2,7 +2,7 @@
 id: qv54fehda4bxqar9znkjcok
 title: AWS Lambda
 desc: 'This page describes all findings related to AWS lambda usage'
-updated: 1650950782844
+updated: 1653881040523
 created: 1650910054903
 ---
 
@@ -14,6 +14,8 @@ created: 1650910054903
 
 - SAM Local lambda [official](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-cli-command-reference-sam-local-start-lambda.html)
 
+
+- [Downloading file from S3 bucket using link](https://stackoverflow.com/questions/44120235/how-to-download-a-file-from-s3-using-provided-url)
 
 - [Developing AWS Lambda Functions Locally in VS Code](https://www.youtube.com/watch?v=fEZE3rm8Ma8)
 

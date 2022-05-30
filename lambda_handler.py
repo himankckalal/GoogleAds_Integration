@@ -2,7 +2,6 @@ from base64 import decode
 import json
 import os
 import phonenumbers
-import resource
 from unittest import result
 from urllib import response
 import urllib3
@@ -122,13 +121,13 @@ def generate_add_users_input():
     # Declare the column name from csv
     reader = csv.DictReader(f, fieldnames=(['Email','First Name','Last Name','Country','Zip','Phone']))
     operations = []
+    userIdentifier = []
     for row in reader:
-        userIdentifier = []
-        if row["Email"] == "Email":
-            continue
-        if row["Phone"]:
-            phone = normalize_and_sha256('+91'.join(row["Phone"]))
-            hashedphone ={"hashedPhoneNumber" : phone} 
+        check = 0
+        phone_numbers = row["Phone"].split("/")
+        for phone_number in phone_numbers:
+            hashedPhoneNumber = normalize_and_sha256('+91'.join(phone_number))
+            hashedphone ={"hashedPhoneNumber" : hashedPhoneNumber} 
             userIdentifier.append(hashedphone)
 
         if row["Email"]:
@@ -136,10 +135,12 @@ def generate_add_users_input():
             hashedemail = {"hashedEmail" : email}
             userIdentifier.append(hashedemail)
 
-        if row["First Name"] and row["Last Name"] and row["Zip"] and row["Country"]:
-            first_name = normalize_and_sha256(row["First Name"])
-            last_name = normalize_and_sha256(row["Last Name"]) 
-            address = {
+        if check == 0 and (row["First Name"] or row["Last Name"] or row["Zip"] or  row["Country"]):
+            check = 1
+            if row["First Name"] and row["Last Name"] and row["Zip"] and row["Country"]:
+                first_name = normalize_and_sha256(row["First Name"])
+                last_name = normalize_and_sha256(row["Last Name"]) 
+                address = {
                 "hashedFirstName": first_name,
                 "hashedLastName": last_name,
                 "countryCode": row["Country"],
@@ -147,12 +148,14 @@ def generate_add_users_input():
             }   
             address_dict = { "addressInfo" : address }
             userIdentifier.append(address_dict)
-        userIdentifier = {
+    
+    
+    userIdentifier = {
             "userIdentifiers": userIdentifier
         }
-        create_dict = { "create" : userIdentifier }
-        operations.append(create_dict)
-        operations_dict = { "operations" : operations}
+    create_dict = { "create" : userIdentifier }
+    operations.append(create_dict)
+    operations_dict = { "operations" : operations}
     
     out = json.dumps(operations_dict, indent=4)
     return out
