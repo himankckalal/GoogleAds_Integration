@@ -2,7 +2,7 @@
 id: qv54fehda4bxqar9znkjcok
 title: AWS Lambda
 desc: 'This page describes all findings related to AWS lambda usage'
-updated: 1653881040523
+updated: 1653906226355
 created: 1650910054903
 ---
 
@@ -18,6 +18,8 @@ created: 1650910054903
 - [Downloading file from S3 bucket using link](https://stackoverflow.com/questions/44120235/how-to-download-a-file-from-s3-using-provided-url)
 
 - [Developing AWS Lambda Functions Locally in VS Code](https://www.youtube.com/watch?v=fEZE3rm8Ma8)
+
+- [S3 url parser library](https://pypi.org/project/s3urls/)
 
 
 ---
