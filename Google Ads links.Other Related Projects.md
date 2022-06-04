@@ -1,8 +1,8 @@
 ---
 id: cgbpdk1795djqykwsbn7dcj
 title: Other Related Projects
-desc: 'This is for Other projects'
-updated: 1651213683630
+desc: This is for Other projects
+updated: 1654160259110
 created: 1650950264726
 ---
 
@@ -46,8 +46,13 @@ created: 1650950264726
 
 - [Parsing a Spreadsheet Into a JSON File Using Python](https://medium.com/coinmonks/parsing-a-spreadsheet-into-a-json-file-using-python-6118f5c70bd3)
 
+-[Difference between ref and getatt while creating cloudformation using yaml](https://stackoverflow.com/questions/58617503/cloudformation-when-to-use-getatt-ref-vs)
+
+
+
+-[Converting Yaml into Json for cloud Formation](https://cfnflip.com/)
 
 ---
 
 #### backlinks
-- [[Google Ads| Google Ads links ]]
+- [[Google Ads|index]]

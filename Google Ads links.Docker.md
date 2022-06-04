@@ -1,7 +1,7 @@
 ---
 id: sp06lzqhboddpdmls6evob5
 title: Docker
-desc: 'This is fully in context of using lambda for this project'
+desc: This is fully in context of using lambda for this project
 updated: 1650949280622
 created: 1650910200090
 ---
@@ -10,4 +10,4 @@ created: 1650910200090
 
 ---
 #### backlinks
-- [[Google Ads| Google Ads links ]]
+- [[Google Ads|index]]

@@ -1,7 +1,7 @@
 ---
 id: qv54fehda4bxqar9znkjcok
 title: AWS Lambda
-desc: 'This page describes all findings related to AWS lambda usage'
+desc: This page describes all findings related to AWS lambda usage
 updated: 1653906226355
 created: 1650910054903
 ---
@@ -24,5 +24,5 @@ created: 1650910054903
 
 ---
 #### backlinks
-- [[Google Ads| Google Ads links ]]
+- [[Google Ads|index]]
 

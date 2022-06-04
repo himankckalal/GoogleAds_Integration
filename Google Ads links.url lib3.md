@@ -1,7 +1,7 @@
 ---
 id: dnulm8fhnucfy881zhgrnep
 title: urllib3
-desc: 'Guild to send Http Request in python using'
+desc: Guild to send Http Request in python using
 updated: 1650952636806
 created: 1650908995414
 ---
@@ -41,4 +41,4 @@ created: 1650908995414
 
 
 #### backlinks
-- [[Google Ads| Google Ads links ]]
+- [[Google Ads|index]]
