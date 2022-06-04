@@ -1,6 +1,6 @@
 ---
 id: ibzekx0e6yn4kjk5fb21gym
-title: Index
+title: README
 desc: The Google ads Project
 updated: 1654321247435
 created: 1650908852791
@@ -11,5 +11,5 @@ created: 1650908852791
 
 
 ---
-[[Google Ads|index]]
+[[Google Ads|README]]
 
