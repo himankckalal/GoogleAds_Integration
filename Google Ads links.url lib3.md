@@ -41,4 +41,4 @@ created: 1650908995414
 
 
 #### backlinks
-- [[Google Ads|README]]
+- [[Google Ads|index]]
