@@ -2,6 +2,7 @@ from base64 import decode
 import json
 import os
 import pandas as pd
+import re
 import tempfile
 import resource
 from unittest import result
@@ -39,45 +40,37 @@ HEADER_LOGIN_CUSTOMER_ID = "Login customer ID"
 def lambda_handler(event, context):
     logger.info(f"Inside GoogleAdsCustomerMatch Lambda. Payload = '{event}'")
 
-    # if event is None:
-    #     logger.error("Null event received")
-    #     return construct_response_body(400, "Null event received")
-    # elif INPUT_KEY_BODY not in event:
-    #     logger.error("Received empty body in event payload")
-    #     return construct_response_body(400, "Received empty body in event payload")
+    if event is None:
+        logger.error("Null event received")
+        return construct_response_body(400, "Null event received")
+    elif INPUT_KEY_BODY not in event:
+        logger.error("Received empty body in event payload")
+        return construct_response_body(400, "Received empty body in event payload")
 
 
     # Validate input for mandatory data items
     # headers = json.loads(event[INPUT_KEY_HEADERS])
-    # headers = event[INPUT_KEY_HEADERS]
-    # for key in INPUT_HEADER_MANDATORY_KEYS:
-    #     if key not in headers:
-    #         logger.error(f"Could not find '{key}' in headers")
-    #         return construct_response_body(400, f"Could not find '{key}' in headers")
-    #     else:
-    #         logger.info(f"Found required header : name='{key}', value='{headers[key]}'")
+    headers = event[INPUT_KEY_HEADERS]
+    for key in INPUT_HEADER_MANDATORY_KEYS:
+        if key not in headers:
+            logger.error(f"Could not find '{key}' in headers")
+            return construct_response_body(400, f"Could not find '{key}' in headers")
+        else:
+            logger.info(f"Found required header : name='{key}', value='{headers[key]}'")
 
-    # connection_info_header_value = headers[HEADER_KEY_CONNECTION_INFO]
-    # connection_info_json = decode_connection_info(connection_info_header_value)
-    # developer_token = connection_info_json[HEADER_DEVELOPER_TOKEN]
-    # client_id = connection_info_json[HEADER_CLIENT_ID]
-    # client_secret = connection_info_json[HEADER_CLIENT_SECRET]
-    # refresh_token = connection_info_json[HEADER_REFRESH_TOKEN]
-    # login_customer_id = connection_info_json[HEADER_LOGIN_CUSTOMER_ID]
+    connection_info_header_value = headers[HEADER_KEY_CONNECTION_INFO]
+    connection_info_json = decode_connection_info(connection_info_header_value)
+    developer_token = connection_info_json[HEADER_DEVELOPER_TOKEN]
+    client_id = connection_info_json[HEADER_CLIENT_ID]
+    client_secret = connection_info_json[HEADER_CLIENT_SECRET]
+    refresh_token = connection_info_json[HEADER_REFRESH_TOKEN]
+    login_customer_id = connection_info_json[HEADER_LOGIN_CUSTOMER_ID]
 
-    # event_body = json.loads(event[INPUT_KEY_BODY])
-    client_id = os.environ.get('client_id')
-    client_secret = os.environ.get('client_secret')
-    refresh_token = os.environ.get('refresh_token')
-    login_customer_id = os.environ.get('login_customer_id')
-    developer_token = os.environ.get('developer_token')
-
-    
-    # event_body = event
+    event_body = json.loads(event[INPUT_KEY_BODY])
     # Getting Bearer Token using client_id,client_secret and refresh_token
-    s3_location = event["presigned_URL"]
+    s3_location = event_body["presigned_URL"]
     # s3_location = event["URI"]
-    customer_id = event["customer_id"]
+    customer_id = event_body["customer_id"]
 
 
     bearer_token = get_authorization_token(client_id, client_secret, refresh_token)
@@ -178,29 +171,29 @@ def generate_add_users_input(s3_location):
 
     df = pd.read_csv(s3_location)
     # logger.info(df.head())
-    logger.info(df.columns)
+    logger.info("Columns are : {}".format(df.columns))
     
     operations = []
     for index, row in df.iterrows():
-        userIdentifier = [] 
-        
+        userIdentifier = []
         phone_numbers = str(row["Phone"]).split("/")
         # print(phone_numbers)
         for phone_number in phone_numbers:
-            hashedPhoneNumber = normalize_and_sha256('+91'+(phone_number))
-            hashedphone ={"hashedPhoneNumber" : hashedPhoneNumber} 
-            userIdentifier.append(hashedphone)
+            if re.match("^\+?[1-9]\d{1,14}$", phone_number):
+                hashedPhoneNumber = normalize_and_sha256((phone_number))
+                hashedphone ={"hashedPhoneNumber" : hashedPhoneNumber} 
+                userIdentifier.append(hashedphone)
             
         if "Email" in df.columns:
-            if '@' in str(row["Email"]):
-                email = normalize_and_sha256(row["Email"])
-                # email = row["Email"]
-                hashedemail = {"hashedEmail" : email}
-                userIdentifier.append(hashedemail)
+            emails = str(row["Email"]).split("/")
+            for emai_l in emails:
+                if '@' in str(emai_l) :
+                    email = normalize_and_sha256(emai_l)
+                    hashedemail = {"hashedEmail" : email}
+                    userIdentifier.append(hashedemail)
         
         if "First Name" in df.columns and "Last Name" in df.columns and "Zip" in df.columns and "Country" in df.columns:
-            print(row)
-            if not pd.isnull(df.at[index, 'First Name']) and not pd.isnull(df.at[index, 'Last Name']) and not pd.isnull(df.at[index, 'Zip'])  and  not pd.isnull(df.at[index, 'Country']):
+            if (not pd.isnull(df.at[index, 'First Name'])) and (not pd.isnull(df.at[index, 'Last Name'])) and (not pd.isnull(df.at[index, 'Zip']))  and  (not pd.isnull(df.at[index, 'Country'])):
                 first_name = normalize_and_sha256(row["First Name"])
                 last_name = normalize_and_sha256(row["Last Name"])
                 address = {
@@ -221,8 +214,6 @@ def generate_add_users_input(s3_location):
     operations_dict = { "operations" : operations}
         
     out = json.dumps(operations_dict, indent=4)
-    logger.info("printing oout")
-    logger.info(out)
     return out
         
         
