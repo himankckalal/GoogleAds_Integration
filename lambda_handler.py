@@ -1,12 +1,16 @@
-from base64 import decode
 import json
+import base64
 import os
 import pandas as pd
 import re
+import random
+import math
 import tempfile
 import resource
 from unittest import result
 from urllib import response
+from datetime import datetime
+import phonenumbers
 import urllib3
 import hashlib
 import csv
@@ -21,6 +25,8 @@ import logging
 logger = logging.getLogger() 
 logger.setLevel(logging.INFO)
 s3 = boto3.client('s3')
+now = datetime.now().time().strftime("%H:%M:%S") # time object
+date = datetime.now().strftime("%Y-%m-%d") # date object
 from urllib3._collections import HTTPHeaderDict
 
 INPUT_KEY_BODY               = "body"
@@ -29,12 +35,13 @@ INPUT_KEY_HEADERS            = "headers"
 HEADER_KEY_CONNECTION_INFO   = "ci360-conn-system-connector-attributes"
 INPUT_HEADER_MANDATORY_KEYS  = [HEADER_KEY_CONNECTION_INFO]
 
+HEADER_TYPE_APPLICATION_JSON  = "application/json"
 
-HEADER_CLIENT_ID = 'Client ID'
-HEADER_CLIENT_SECRET =  'Client secret'
-HEADER_DEVELOPER_TOKEN = "Developer token"
-HEADER_REFRESH_TOKEN = "Refresh token"
-HEADER_LOGIN_CUSTOMER_ID = "Login customer ID" 
+HEADER_CLIENT_ID = "clientId"
+HEADER_CLIENT_SECRET =  "clientSecret"
+HEADER_DEVELOPER_TOKEN = "developerToken"
+HEADER_REFRESH_TOKEN = "refreshToken"
+HEADER_LOGIN_CUSTOMER_ID = "loginCustomerId"
 
 
 def lambda_handler(event, context):
@@ -120,12 +127,14 @@ def get_authorization_token(client_id, client_secret, refresh_token):
 def get_resource_name(developer_token, bearer_token, login_customer_id, customer_id):
     # creating payload
     # adding uuid component to recognize each req differently 
+    
+
     payload = {
     "operations": [
         {
     "create": {
-    "membershipLifeSpan": "3",
-    "name" : "Uploaded from lambda_test - " + str(uuid.uuid4()),
+    "membershipLifeSpan": "3",	
+    "name" : "Uploaded from lambda_test_time - "+str(random.randint(0,9)) + str(date+" "+now),
     "crmBasedUserList" : {
     "uploadKeyType" : "CONTACT_INFO"
                         }
@@ -143,7 +152,7 @@ def get_resource_name(developer_token, bearer_token, login_customer_id, customer
     headers_dict = HTTPHeaderDict()
     headers_dict.add("Authorization", "Bearer " + str(bearer_token))
     headers_dict.add("developer-token", developer_token)
-    headers_dict.add("Content-Type", "application/json")
+    headers_dict.add("Content-Type", HEADER_TYPE_APPLICATION_JSON)
     headers_dict.add("login-customer-id",  login_customer_id)
     api_url = 'https://googleads.googleapis.com/v10/customers/{customer_id}/userLists:mutate'.format( customer_id = customer_id)
     response = http.request('POST',api_url,headers=headers_dict,body=encoded_json_str)
@@ -151,9 +160,10 @@ def get_resource_name(developer_token, bearer_token, login_customer_id, customer
     decoded_obj = response.data.decode('utf-8')
     # converting  decoded response to json string
     json_str = json.loads(decoded_obj)
+    logger.info("Printing JSON from resourceName : {}".format(json_str))
     # extracting resoucename from json
     resource_name = json_str['results'][0]['resourceName']
-    str1 = 'get_resouce_name{test}'.format(test = resource_name)
+    str1 = 'get_resouce_name {test}'.format(test = resource_name)
     logger.info(str1)
     return resource_name
 
@@ -169,33 +179,50 @@ def generate_add_users_input(s3_location):
     # f = open( '/tmp/mycsv.csv', 'rU' )
 
 
-    df = pd.read_csv(s3_location)
+    df = pd.read_csv(s3_location,dtype = str)
+    # df = df.astype(str)
     # logger.info(df.head())
     logger.info("Columns are : {}".format(df.columns))
     
     operations = []
     for index, row in df.iterrows():
-        userIdentifier = []
+        print(row)
+        # print(type(row["Country"]))
+        user_identifier = []
         phone_numbers = str(row["Phone"]).split("/")
-        # print(phone_numbers)
         for phone_number in phone_numbers:
-            if re.match("^\+?[1-9]\d{1,14}$", phone_number):
-                hashedPhoneNumber = normalize_and_sha256((phone_number))
-                hashedphone ={"hashedPhoneNumber" : hashedPhoneNumber} 
-                userIdentifier.append(hashedphone)
-            
+            if re.match("^\+[1-9]\d{1,14}$", phone_number):
+                # print(phone_number)
+                hashed_phone_number = normalize_and_sha256(phone_number)
+                hashedphone ={"hashedPhoneNumber" : hashed_phone_number} 
+                user_identifier.append(hashedphone)
+            else:
+                if "Country" in df.columns and (not pd.isnull(df.at[index, 'Country'])) :
+                    print(f"Printing COuntry type : {type(df.at[index, 'Country'])} .")
+                    # if isinstance(df.at[index, 'Country'], float):
+                        # 
+                    if '-' in phone_number:
+                        phone_number = phone_number.replace('-','')
+                    if re.match("^[1-9]+\d*$", phone_number):
+                        parsed_number = phonenumbers.parse(phone_number, str(row["Country"]).upper())
+                        e164_f=phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
+                        hashed_phone_number = normalize_and_sha256(e164_f)
+                        hashedphone ={"hashedPhoneNumber" : hashed_phone_number} 
+                        user_identifier.append(hashedphone)
+                    
         if "Email" in df.columns:
             emails = str(row["Email"]).split("/")
             for emai_l in emails:
                 if '@' in str(emai_l) :
                     email = normalize_and_sha256(emai_l)
                     hashedemail = {"hashedEmail" : email}
-                    userIdentifier.append(hashedemail)
+                    user_identifier.append(hashedemail)
         
         if "First Name" in df.columns and "Last Name" in df.columns and "Zip" in df.columns and "Country" in df.columns:
             if (not pd.isnull(df.at[index, 'First Name'])) and (not pd.isnull(df.at[index, 'Last Name'])) and (not pd.isnull(df.at[index, 'Zip']))  and  (not pd.isnull(df.at[index, 'Country'])):
                 first_name = normalize_and_sha256(row["First Name"])
                 last_name = normalize_and_sha256(row["Last Name"])
+                print(type(row["Zip"]))
                 address = {
                     "hashedFirstName": first_name ,
                     "hashedLastName": last_name ,
@@ -203,37 +230,21 @@ def generate_add_users_input(s3_location):
                     "postalCode": row["Zip"]
                 }   
                 address_dict = { "addressInfo" : address }
-                userIdentifier.append(address_dict)
-        userIdentifier = {
-                "userIdentifiers": userIdentifier
+                user_identifier.append(address_dict)
+        logger.info("Number of user identifier inside user identifiers : {}".format(len(user_identifier)))
+        user_identifiers_dict = {
+                "userIdentifiers": user_identifier
             }
         
-        create_dict = { "create" : userIdentifier }
+        create_dict = { "create" : user_identifiers_dict }
         operations.append(create_dict)
-        
+    logger.info("Number of create requests inside operations: {} ".format(len(operations)))    
     operations_dict = { "operations" : operations}
         
     out = json.dumps(operations_dict, indent=4)
     return out
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    
+
+
     # reader = csv.DictReader(f, fieldnames=(['Email','First Name','Last Name','Country','Zip','Phone']))
     # next(reader)
     # operations = []
@@ -281,7 +292,7 @@ def create_offline_user_data_job(userlist_resource_name, developer_token, bearer
     req_headers = {
         'developer-token': developer_token,
         'login-customer-id': login_customer_id,
-        'Accept': 'application/json',
+        'Accept': HEADER_TYPE_APPLICATION_JSON,
         'Authorization':  "Bearer " + str(bearer_token),
         }
 
@@ -322,7 +333,7 @@ def add_operations_for_user_data(offline_user_data_job_resource_name, developer_
     req_headers = {
         'developer-token': developer_token,
         'login-customer-id': login_customer_id,
-        'Accept': 'application/json',
+        'Accept': HEADER_TYPE_APPLICATION_JSON,
         'Authorization':  "Bearer " + str(bearer_token),
         }
 
@@ -343,8 +354,8 @@ def run_offline_job(offline_user_data_job_resource_name, developer_token, bearer
     req_headers = {
     'developer-token': developer_token,
     'login-customer-id': login_customer_id,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
+    'Accept': HEADER_TYPE_APPLICATION_JSON,
+    'Content-Type': HEADER_TYPE_APPLICATION_JSON,
     'Authorization':  "Bearer " + str(bearer_token),
         }
     api_url = 'https://googleads.googleapis.com/v10/{offline_user_data_job_resource_name}:run'.format(offline_user_data_job_resource_name = offline_user_data_job_resource_name)
@@ -389,7 +400,7 @@ def normalize_and_sha256(s):
 def construct_response_body(status_code, response_body):
     return {
                 'statusCode': status_code,
-                'body': response_body
+                'body': str(response_body)
             }
 
 
