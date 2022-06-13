@@ -3,8 +3,6 @@ import base64
 import os
 import pandas as pd
 import re
-import random
-import math
 import tempfile
 import resource
 from unittest import result
@@ -25,8 +23,6 @@ import logging
 logger = logging.getLogger() 
 logger.setLevel(logging.INFO)
 s3 = boto3.client('s3')
-now = datetime.now().time().strftime("%H:%M:%S") # time object
-date = datetime.now().strftime("%Y-%m-%d") # date object
 from urllib3._collections import HTTPHeaderDict
 
 INPUT_KEY_BODY               = "body"
@@ -127,14 +123,12 @@ def get_authorization_token(client_id, client_secret, refresh_token):
 def get_resource_name(developer_token, bearer_token, login_customer_id, customer_id):
     # creating payload
     # adding uuid component to recognize each req differently 
-    
-
     payload = {
     "operations": [
         {
     "create": {
-    "membershipLifeSpan": "3",	
-    "name" : "Uploaded from lambda_test_time - "+str(random.randint(0,9)) + str(date+" "+now),
+    "membershipLifeSpan": "5",	
+    "name" : "Lambda Upload on : "+datetime.now().isoformat(timespec='seconds'),
     "crmBasedUserList" : {
     "uploadKeyType" : "CONTACT_INFO"
                         }
@@ -160,11 +154,11 @@ def get_resource_name(developer_token, bearer_token, login_customer_id, customer
     decoded_obj = response.data.decode('utf-8')
     # converting  decoded response to json string
     json_str = json.loads(decoded_obj)
+    #printing json response from resourcename
     logger.info("Printing JSON from resourceName : {}".format(json_str))
     # extracting resoucename from json
     resource_name = json_str['results'][0]['resourceName']
-    str1 = 'get_resouce_name {test}'.format(test = resource_name)
-    logger.info(str1)
+    logger.info('got_resouce_name as : {}'.format(resource_name))
     return resource_name
 
 
@@ -180,27 +174,20 @@ def generate_add_users_input(s3_location):
 
 
     df = pd.read_csv(s3_location,dtype = str)
-    # df = df.astype(str)
     # logger.info(df.head())
     logger.info("Columns are : {}".format(df.columns))
     
     operations = []
     for index, row in df.iterrows():
-        print(row)
-        # print(type(row["Country"]))
         user_identifier = []
         phone_numbers = str(row["Phone"]).split("/")
         for phone_number in phone_numbers:
             if re.match("^\+[1-9]\d{1,14}$", phone_number):
-                # print(phone_number)
                 hashed_phone_number = normalize_and_sha256(phone_number)
                 hashedphone ={"hashedPhoneNumber" : hashed_phone_number} 
                 user_identifier.append(hashedphone)
             else:
-                if "Country" in df.columns and (not pd.isnull(df.at[index, 'Country'])) :
-                    print(f"Printing COuntry type : {type(df.at[index, 'Country'])} .")
-                    # if isinstance(df.at[index, 'Country'], float):
-                        # 
+                if "Country" in df.columns and (not pd.isnull(df.at[index, 'Country'])):
                     if '-' in phone_number:
                         phone_number = phone_number.replace('-','')
                     if re.match("^[1-9]+\d*$", phone_number):
@@ -213,7 +200,7 @@ def generate_add_users_input(s3_location):
         if "Email" in df.columns:
             emails = str(row["Email"]).split("/")
             for emai_l in emails:
-                if '@' in str(emai_l) :
+                if re.match("^[a-z0-9._]+@gmail\.[a-z]{2,}$", str(emai_l)):
                     email = normalize_and_sha256(emai_l)
                     hashedemail = {"hashedEmail" : email}
                     user_identifier.append(hashedemail)
@@ -222,7 +209,6 @@ def generate_add_users_input(s3_location):
             if (not pd.isnull(df.at[index, 'First Name'])) and (not pd.isnull(df.at[index, 'Last Name'])) and (not pd.isnull(df.at[index, 'Zip']))  and  (not pd.isnull(df.at[index, 'Country'])):
                 first_name = normalize_and_sha256(row["First Name"])
                 last_name = normalize_and_sha256(row["Last Name"])
-                print(type(row["Zip"]))
                 address = {
                     "hashedFirstName": first_name ,
                     "hashedLastName": last_name ,
